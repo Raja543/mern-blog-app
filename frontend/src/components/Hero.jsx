@@ -19,7 +19,7 @@ const Hero = () => {
           <div className="relative flex items-center">
             <input
               type="text"
-              className="w-full py-4 pl-12 text-[#959EAD] shadow-xl bg-[#fff] font-bold italic rounded-xl focus:outline-none"
+              className="w-full py-4 pl-12 text-[#959EAD]  shadow-custom  bg-[#fff] font-bold italic rounded-xl focus:outline-none"
               placeholder="Search for article"
             />
             <div className="absolute inset-y-0 left-0 flex items-center px-4">
@@ -45,7 +45,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      <div className="w-1/2 hidden lg:block ">
+      <div className="w-1/2 items-center justify-center hidden lg:block mt-10">
         <img src="./images/hero.svg" className="w-full" alt="hero" />
       </div>
     </div>
