@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const Auth = require("../models/Auth");
+const Auth = require("../models/auth");
 const errorMessage = require("../utils/errorMessage");
 const { jwtSecret } = require("../config");
 

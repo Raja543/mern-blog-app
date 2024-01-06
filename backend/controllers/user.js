@@ -1,10 +1,10 @@
-const Auth = require("../models/Auth");
+const Auth = require("../models/auth");
 
 const profile = async (req, res, next) => {
   try {
     const user = req.user;
 
-    const data = await Auth.findOne({ userName: user.userName }).select(
+    const data = await Auth.findOne({ name: user.name }).select(
       "name email"
     );
 

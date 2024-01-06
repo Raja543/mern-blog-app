@@ -46,7 +46,7 @@ const login = async (req, res, next) => {
     // sign jwt
     const payload = {
       userId: loggedInUser._id.toString(),
-      userName: loggedInUser.userName,
+      name: loggedInUser.name,
       role: loggedInUser.role,
     };
 
@@ -119,7 +119,7 @@ const refresh = async (req, res) => {
     // sign jwt
     const payload = {
       userId: foundUser._id.toString(),
-      userName: foundUser.userName,
+      name: foundUser.name,
       role: foundUser.role,
     };
 
