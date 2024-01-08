@@ -1,86 +1,131 @@
 import React, { createContext, useEffect, useState, useRef } from "react";
+import PropTypes from "prop-types";
+import LoadingScreen from "../components/LoadingScreen";
 import { axiosPrivate } from "../utils/axios";
-import jwtDecoder from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { catchError } from "../utils/catchError";
-import LoadingScreen from "@components/LoadingScreen";
 
-// Initial state
-const initialState = {
-  isInitialized: false,
-  isAuthenticated: false,
-  accessToken: "",
-  user: null,
-};
+// Create context
+const AuthContext = createContext();
 
-// Decode JWT
-const decodeJwt = (token) => {
-  const { Name, role, userId } = jwtDecoder(token);
-  return { Name, role, userId };
-};
-
-// Auth context
-export const AuthContext = createContext({});
-
-// Auth provider
+// auth provider
 export const AuthProvider = ({ children }) => {
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState({
+    isInitialized: false,
+    isAuthenticated: false,
+    accessToken: "",
+    user: null,
+  });
+
   const isMountedRef = useRef(false);
 
-  // Login
+  // Decode JWT
+  const decodeJwt = (token) => {
+    const { userName, role, userId } = jwtDecode(token);
+    return { userName, role, userId };
+  };
+
+  // login
   const login = async (userName, password) => {
-    const response = await axiosPrivate.post("/api/auth/login", { userName, password });
+    const response = await axiosPrivate.post("/api/auth/login", {
+      userName,
+      password,
+    });
+
     const { accessToken } = response.data;
     const user = decodeJwt(accessToken);
-    setState((prev) => ({ ...prev, isAuthenticated: true, accessToken, user }));
+
+    setState({
+      isInitialized: true,
+      isAuthenticated: true,
+      accessToken,
+      user,
+    });
   };
 
-  // Change password
+  // change password
   const changePassword = async (oldPassword, newPassword) => {
-    await axiosPrivate.post("/api/auth/change-password", { oldPassword, newPassword });
+    await axiosPrivate.post("/api/auth/change-password", {
+      oldPassword,
+      newPassword,
+    });
   };
 
-  // Logout
+  // logout
   const logout = async () => {
     try {
       await axiosPrivate.get("/api/auth/logout");
     } catch (error) {
       console.log(error);
     } finally {
-      setState(initialState);
+      setState({
+        isInitialized: true,
+        isAuthenticated: false,
+        accessToken: "",
+        user: null,
+      });
     }
   };
 
-  // Refresh token
+  // refresh token
   const refresh = async () => {
+    console.log("refreshing ...");
+
     try {
       const response = await axiosPrivate.get("/api/auth/refresh");
       const { accessToken } = response.data;
       const user = decodeJwt(accessToken);
-      setState((prev) => ({ ...prev, isAuthenticated: Boolean(accessToken), accessToken, user }));
+
+      setState({
+        isInitialized: true,
+        isAuthenticated: accessToken ? true : false,
+        accessToken,
+        user,
+      });
+
       return { accessToken, user };
     } catch (error) {
-      setState(initialState);
+      setState({
+        isInitialized: true,
+        isAuthenticated: false,
+        accessToken: "",
+        user: null,
+      });
+
       throw new Error(catchError(error));
     }
   };
 
-  // Initialize app
+  // init app
   const initializingApp = async () => {
+    console.log("initializing ...");
+
     try {
       const { accessToken, user } = await refresh();
-      setState((prev) => ({ ...prev, isInitialized: true, isAuthenticated: Boolean(accessToken), accessToken, user }));
+      setState({
+        isInitialized: true,
+        isAuthenticated: accessToken ? true : false,
+        accessToken,
+        user,
+      });
     } catch (error) {
-      setState((prev) => ({ ...prev, isInitialized: true }));
+      setState({
+        isInitialized: true,
+        isAuthenticated: false,
+        accessToken: "",
+        user: null,
+      });
     }
   };
 
   useEffect(() => {
     if (isMountedRef.current) return;
     initializingApp();
+
     isMountedRef.current = true;
   }, []);
 
-  // Show loading if not initialized
+  // show loading if not init
   if (!state.isInitialized) {
     return <LoadingScreen />;
   }
@@ -98,4 +143,10 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+export default AuthContext;
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

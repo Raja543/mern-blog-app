@@ -55,8 +55,8 @@ authSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
   } catch (error) {
     // Handle the error, you can log it or throw a specific error if needed
-    console.error('Error in comparePassword:', error);
-    throw new Error('Password comparison failed');
+    console.error("Error in comparePassword:", error);
+    throw new Error("Password comparison failed");
   }
 };
 

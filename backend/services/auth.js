@@ -39,21 +39,21 @@ const signupUser = async (data) => {
     console.error("Error in signupUser:", error);
     throw error;
   }
-};
+};            
 
 // login
 const login = async ({ email, password }) => {
   const auth = await findByProperty("email", email);
 
-  if (!auth) throw errorMessage("Incorrect email or passowrd!", 400);
+  if (!auth) throw errorMessage("Incorrect email or passowrd!", 401);
 
   const isPasswordMatch = await auth.comparePassword(password);
-  if (!isPasswordMatch) throw errorMessage("Incorrect email or passowrd!", 400);
+  if (!isPasswordMatch) throw errorMessage("Incorrect email or passowrd!", 401);
 
   if (!auth.active)
     throw errorMessage(
       "Account is not activated, please contact with admin",
-      400
+      401
     );
 
   return auth;
@@ -63,7 +63,7 @@ const login = async ({ email, password }) => {
 const resetPassword = async ({ email, password }) => {
   const auth = await findByProperty("email", email);
 
-  if (!auth) throw errorMessage("Incorrect email!", 400);
+  if (!auth) throw errorMessage("Incorrect email!", 401);
 
   auth.password = password;
   return auth.save();

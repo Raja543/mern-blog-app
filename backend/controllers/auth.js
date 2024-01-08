@@ -66,57 +66,115 @@ const login = async (req, res, next) => {
 };
 
 // refresh token
+// const refresh = async (req, res) => {
+//   const cookies = req.cookies;
+//   const cookiesToken = cookies?.refreshToken;
+
+//   if (!cookiesToken) {
+//     return res.status(401).json({ message: "Unauthorized!" });
+//   }
+
+//   // clear old cookie
+//   res.clearCookie("refreshToken", cookieOption);
+
+//   const foundUser = await authService.findByProperty(
+//     "refreshToken",
+//     cookiesToken
+//   );
+
+//   // Detected refresh token reuse
+//   if (!foundUser) {
+//     jwt.verify(cookiesToken, jwtSecret.refresh, async (err, decoded) => {
+//       if (err) {
+//         return res.status(403).json({ message: "Forbidden!" });
+//       }
+
+//       const decodedId = decoded.userId;
+//       const hackedUser = await authService.findByProperty("_id", decodedId);
+
+//       if (hackedUser) {
+//         hackedUser.refreshToken = [];
+//         await hackedUser.save();
+//       }
+//     });
+
+//     return res.status(403).json({ message: "Forbidden!" });
+//   }
+
+//   const newRefreshTokenList =
+//     foundUser?.refreshToken?.filter((rt) => rt !== cookiesToken) || [];
+
+//   jwt.verify(cookiesToken, jwtSecret.refresh, async (err, decoded) => {
+//     if (err) {
+//       foundUser.refreshToken = [...newRefreshTokenList];
+//       await foundUser.save();
+//     }
+
+//     const decodedId = decoded.userId;
+
+//     if (err || foundUser?._id.toString() !== decodedId) {
+//       return res.status(403).json({ message: "Forbidden!" });
+//     }
+
+//     // sign jwt
+//     const payload = {
+//       userId: foundUser._id.toString(),
+//       name: foundUser.name,
+//       role: foundUser.role,
+//     };
+
+//     const jwtSign = authService.jwtSignIn(payload);
+
+//     // saving refreshToken with current user
+//     foundUser.refreshToken = [...newRefreshTokenList, jwtSign.refreshToken];
+//     await foundUser.save();
+
+//     // set cookie with refresh token
+//     res.cookie("refreshToken", jwtSign.refreshToken, cookieOption);
+
+//     res.json({ accessToken: jwtSign.accessToken });
+//   });
+// };
+
 const refresh = async (req, res) => {
   const cookies = req.cookies;
   const cookiesToken = cookies?.refreshToken;
 
   if (!cookiesToken) {
-    return res.status(401).json({ message: "Unauthorized!" });
+    return res
+      .status(401)
+      .json({ message: "Unauthorized! Refresh token missing." });
   }
 
-  // clear old cookie
-  res.clearCookie("refreshToken", cookieOption);
+  try {
+    const decoded = jwt.verify(cookiesToken, jwtSecret.refresh);
 
-  const foundUser = await authService.findByProperty(
-    "refreshToken",
-    cookiesToken
-  );
+    const foundUser = await authService.findByProperty(
+      "refreshToken",
+      cookiesToken
+    );
 
-  // Detected refresh token reuse
-  if (!foundUser) {
-    jwt.verify(cookiesToken, jwtSecret.refresh, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: "Forbidden!" });
-      }
-
-      const decodedId = decoded.userId;
-      const hackedUser = await authService.findByProperty("_id", decodedId);
-
-      if (hackedUser) {
-        hackedUser.refreshToken = [];
-        await hackedUser.save();
-      }
-    });
-
-    return res.status(403).json({ message: "Forbidden!" });
-  }
-
-  const newRefreshTokenList =
-    foundUser?.refreshToken?.filter((rt) => rt !== cookiesToken) || [];
-
-  jwt.verify(cookiesToken, jwtSecret.refresh, async (err, decoded) => {
-    if (err) {
-      foundUser.refreshToken = [...newRefreshTokenList];
-      await foundUser.save();
+    if (!foundUser) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden! Detected refresh token reuse." });
     }
 
     const decodedId = decoded.userId;
+    const hackedUser = await authService.findByProperty("_id", decodedId);
 
-    if (err || foundUser?._id.toString() !== decodedId) {
-      return res.status(403).json({ message: "Forbidden!" });
+    if (hackedUser) {
+      hackedUser.refreshToken = [];
+      await hackedUser.save();
+      return res
+        .status(403)
+        .json({ message: "Forbidden! Detected refresh token reuse." });
     }
 
-    // sign jwt
+    // Clear old cookie
+    res.clearCookie("refreshToken", cookieOption);
+
+    // Sign new JWT
     const payload = {
       userId: foundUser._id.toString(),
       name: foundUser.name,
@@ -125,15 +183,22 @@ const refresh = async (req, res) => {
 
     const jwtSign = authService.jwtSignIn(payload);
 
-    // saving refreshToken with current user
+    // Update user's refreshToken list
+    const newRefreshTokenList =
+      foundUser?.refreshToken?.filter((rt) => rt !== cookiesToken) || [];
     foundUser.refreshToken = [...newRefreshTokenList, jwtSign.refreshToken];
     await foundUser.save();
 
-    // set cookie with refresh token
+    // Set cookie with new refresh token
     res.cookie("refreshToken", jwtSign.refreshToken, cookieOption);
 
-    res.json({ accessToken: jwtSign.accessToken });
-  });
+    return res.json({ accessToken: jwtSign.accessToken });
+  } catch (err) {
+    console.error("Error verifying refresh token:", err);
+    return res
+      .status(403)
+      .json({ message: "Forbidden! Invalid or expired refresh token." });
+  }
 };
 
 // logout

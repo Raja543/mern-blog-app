@@ -13,7 +13,7 @@ router.post("/login", validate(authSchema.login), authController.login);
 
 // api/auth/refresh
 router.get("/refresh", authController.refresh);
-
+ 
 // api/auth/logout
 router.get("/logout", authController.logout);
 
